@@ -1,0 +1,317 @@
+/* Эксперт Логистика — стили. Оформление живёт только здесь. */
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: 120px; -webkit-text-size-adjust: 100%; color-scheme: light; } /* 120 px — под фиксированную шапку и плашку логотипа: фокус и якоря не прячутся под ними */
+html.loaded { scroll-behavior: smooth; } /* плавно — только после загрузки: при открытии с #якорем страница не «пролетает» все блоки */
+body {
+  margin: 0; background: var(--milk); color: var(--graphite);
+  font: 400 var(--fs-body)/1.6 var(--font); -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p, ul, ol { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+img { max-width: 100%; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+.vh { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.skip { position: fixed; left: 12px; top: -60px; z-index: 100; padding: 10px 16px; background: var(--milk); border-radius: 8px; transition: top .2s var(--ease); }
+.skip:focus { top: 12px; }
+
+h1, h2 { font-weight: 700; letter-spacing: -.025em; text-wrap: balance; }
+h1 { font-size: var(--fs-h1); line-height: 1; }
+h2 { font-size: var(--fs-h2); line-height: 1.06; }
+h3 { font-size: 1.375rem; font-weight: 600; line-height: 1.3; }
+.lead { font-size: var(--fs-lead); max-width: 36rem; }
+.note { font-size: var(--fs-cap); color: var(--text-2); margin-top: 16px; }
+.in { width: 100%; max-width: 1440px; margin-inline: auto; }
+
+/* Плашка с логотипом: исходный файл на белом, multiply растворяет белое в --milk */
+.brand {
+  position: fixed; z-index: 30; top: 0; left: 0; padding: 8px 14px 10px 10px;
+  background: var(--milk); border-radius: 0 0 18px 0;
+  box-shadow: 0 10px 30px -18px rgba(36, 56, 66, .5);
+}
+.brand img { display: block; height: 84px; width: auto; mix-blend-mode: multiply; }
+
+.top {
+  position: fixed; z-index: 30; top: 14px; right: var(--gutter);
+  display: flex; align-items: center; gap: clamp(14px, 2vw, 30px); padding: 6px 6px 6px 24px;
+  border-radius: 999px; background: rgba(247, 248, 250, .88);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  box-shadow: 0 1px 2px rgba(36, 56, 66, .14);
+}
+.top nav { display: flex; gap: clamp(14px, 1.7vw, 28px); font-size: .9375rem; font-weight: 500; }
+.top nav a { text-decoration: none; padding: 8px 0; border-bottom: 2px solid transparent; transition: border-color .22s var(--ease); }
+.top nav a:hover, .top nav a[aria-current="true"] { border-color: var(--accent); }
+
+/* Кнопки: основной — графит на молочном (11:1); фирменный голубой только в кольце и фокусе */
+.btn {
+  display: inline-flex; align-items: center; gap: .6em; min-height: 52px; padding: 0 28px;
+  border: 2px solid var(--graphite); border-radius: 999px; background: var(--graphite); color: var(--milk);
+  font-weight: 600; text-decoration: none; transition: box-shadow .22s var(--ease);
+}
+.btn::after { content: "→"; transition: transform .22s var(--ease); }
+.btn--ext::after { content: "↗"; }
+.btn:hover { box-shadow: 0 0 0 5px rgba(77, 142, 174, .35); }
+.btn:hover::after { transform: translateX(4px); }
+.btn--ext:hover::after { transform: translate(2px, -2px); } /* по диагонали 2,8 px: не больше 4 */
+.btn--ghost { background: transparent; color: var(--graphite); }
+.btn--sm { min-height: 44px; padding: 0 22px; font-size: .9375rem; }
+.cta { display: flex; flex-wrap: wrap; gap: 14px 16px; margin-top: clamp(28px, 4vh, 44px); }
+
+/* Не подтверждённые данные — видны сразу, пропустить нельзя */
+.todo { outline: 2px dashed var(--accent); outline-offset: 3px; }
+.todo:focus-visible { outline: 3px solid var(--accent); } /* иначе пунктир (объявлен позже общего :focus-visible) прячет фокус */
+
+/* ===== Единый фон блоков 01–07 =====
+   Полоса из семи блоков склеена без швов (tools/build_bg.py), блок N приходится примерно на секцию N.
+   Высота полосы — 94% (--k) высоты секций без sticky-эпизода: основание X попадает на первый экран.
+   Эпизод «Полный цикл» (--pin) добавляет прокрутку в середине страницы, и всё ниже него сдвигается, поэтому полоса
+   показана двумя окнами одной и той же картинки: .plate--a — блоки 1–3, .plate--b — блоки 4–7 со сдвигом на --pin.
+   Между окнами на время эпизода — спокойная поверхность --surface с плавными краями (--fade).
+   Без эпизода (--pin = 0) окна стыкуются по одной строке и дают одну непрерывную картинку. */
+.story {
+  position: relative; isolation: isolate; overflow-x: clip; background: var(--surface);
+  --pin: 0px; --fade: min(320px, calc(var(--pin) * .25));
+  --bgk: .94;    /* высота полосы / высота секций без эпизода */
+  --split: .43;  /* доля высоты полосы, где блок 3 переходит в блок 4 (печатает tools/build_bg.py) */
+}
+.plate { position: absolute; z-index: -1; left: 0; right: 0; overflow: hidden; pointer-events: none; }
+.plate--a { top: 0; height: calc(var(--split) * var(--bgk) * (100% - var(--pin)) - 23px); } /* −24 px сдвиг полосы вверх и +1 px нахлёст на окно b */
+.plate--b { top: calc(var(--split) * var(--bgk) * (100% - var(--pin)) - 24px + var(--pin)); bottom: 0; background: var(--milk); }
+.plate--a::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(233, 238, 242, 0) calc(100% - var(--fade)), var(--surface)); }
+.plate--b::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(to bottom, var(--surface), rgba(233, 238, 242, 0) var(--fade)); }
+.plate--b::after { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(to bottom, rgba(247, 248, 250, 0) calc(100% - 140px), var(--milk)); }
+/* .world — картинка и векторные линии в одних координатах, двигаются как одно целое.
+   left + translate = прежнее background-position 70%; transform-origin — пересечение ног X (70%, строка 724 из 7322).
+   Высоты выражены через высоту своего окна, чтобы у обоих окон был один масштаб: у окна a картинка = (высота + 23 px) / split,
+   у окна b — (высота − 24 px) · bgk / (1 − split · bgk); у обоих это bgk · (высота секций без эпизода). */
+.world {
+  --px: 70%; position: absolute; left: var(--px); translate: calc(var(--px) * -1) 0;
+  aspect-ratio: 2400 / 7322; min-width: 100%; transform-origin: 70% 9.9%;
+}
+.plate--a .world { top: -24px; height: calc((100% + 23px) / var(--split)); }
+.plate--b .world {
+  top: calc(-1 * var(--split) * (100% - 24px) * var(--bgk) / (1 - var(--split) * var(--bgk)));
+  height: calc((100% - 24px) * var(--bgk) / (1 - var(--split) * var(--bgk)));
+}
+.world img, .world__lines { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.world img { object-fit: cover; object-position: 50% 0; }
+.world__lines line { fill: none; stroke: rgba(247, 248, 250, .6); stroke-width: 2.2; stroke-dasharray: 1; stroke-dashoffset: calc(1 - min(1, var(--cam, 0) * 1.6)); }
+
+.story > section {
+  min-height: 88svh; display: grid; align-content: center;
+  padding: clamp(112px, 15vh, 168px) var(--gutter) clamp(64px, 10vh, 120px);
+}
+/* Герой 100svh, остальные 88svh: основание X (14,6% высоты полосы) выходит на ~88svh, горизонт виден на первом экране */
+.story > .hero { min-height: 100svh; }
+
+.hero .in > * { max-width: min(38rem, 50%); }
+.hero h1 { margin-bottom: clamp(20px, 3vh, 32px); }
+
+.about { color: var(--milk); }
+.about .in > * { max-width: min(40rem, 64%); }
+.about .lead { margin-top: 24px; color: var(--milk); }
+.pillars { margin-top: clamp(32px, 6vh, 64px); }
+.pillars li { padding: 18px 0; border-top: 1px solid rgba(247, 248, 250, .3); font-size: 1.25rem; font-weight: 600; }
+.pillars li:last-child { border-bottom: 1px solid rgba(247, 248, 250, .3); }
+/* Десктоп: слева тезис, справа три опоры (мастер-промпт, блок 02) */
+@media (min-width: 1001px) {
+  .about .in { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); column-gap: clamp(32px, 5vw, 96px); align-items: end; }
+  .about .in > * { max-width: none; }
+  .about h2 { grid-column: 1; }
+  .about .lead { grid-column: 1; max-width: 36rem; }
+  /* Справа текст попадает на светлую часть стеклянной диагонали (замер 3,3–4,2:1): подложка из графита палитры, расчётный контраст ≥ 5,5 */
+  .about .pillars { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; padding: 8px 28px; border-radius: 20px; background: rgba(36, 56, 66, .6); }
+}
+
+/* Карточка: контраст текста не зависит от фона под ней. Без backdrop-filter: под ней движущийся слой,
+   блюр пересчитывался бы каждый кадр, а при альфе .94 его почти не видно */
+.card {
+  max-width: 68rem; padding: clamp(24px, 4vw, 56px); border-radius: 24px;
+  background: rgba(247, 248, 250, .94);
+  box-shadow: 0 24px 60px -32px rgba(36, 56, 66, .5);
+}
+
+/* Схема «Полный цикл»: узлы на двух уровнях, соединены прямыми диагоналями (геометрия знака) */
+.scheme { position: relative; height: 222px; margin-top: 28px; counter-reset: n; }
+.scheme__line { position: absolute; left: 0; top: 55px; width: 100%; height: 112px; overflow: visible; }
+.scheme__line polyline { fill: none; stroke: var(--line); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+/* Голубой путь до активного этапа: обрезка по узлу --a (0–6), обновляется и прокруткой, и кликом */
+.scheme__line--done { clip-path: inset(0 calc(100% - (var(--a, 0) + .5) / 7 * 100%) 0 0); transition: clip-path .45s var(--ease); }
+.scheme__line--done polyline { stroke: var(--accent); stroke-width: 2.5; }
+.scheme__nodes { position: absolute; inset: 0; }
+.node {
+  position: absolute; left: calc((var(--i) + .5) / 7 * 100%); width: calc(100% / 7 - 8px); transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0; border: 0; background: none;
+  font: inherit; color: var(--text-2); text-align: center; cursor: pointer;
+}
+.node--up { top: 0; }
+.node--down { top: 160px; flex-direction: column-reverse; }
+.node .lbl { min-height: 40px; display: flex; align-items: flex-end; font-size: .9375rem; font-weight: 600; line-height: 1.25; transition: color .22s var(--ease); }
+.node--down .lbl { align-items: flex-start; }
+.node .lbl::before { display: none; counter-increment: n; content: counter(n, decimal-leading-zero); }
+.node .dot {
+  width: 14px; height: 14px; border: 2px solid var(--line); border-radius: 50%; background: var(--milk);
+  transition: background-color .22s var(--ease), border-color .22s var(--ease), box-shadow .22s var(--ease);
+}
+.node:hover .lbl, .node[aria-selected="true"] .lbl { color: var(--graphite); }
+.node:hover .dot, .node.reached .dot { border-color: var(--accent); }
+.node[aria-selected="true"] .dot { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 6px rgba(77, 142, 174, .22); }
+
+.panels { margin-top: 20px; padding-top: 24px; border-top: 1px solid var(--plane); min-height: 8rem; }
+.panel p { margin-top: 8px; max-width: 40rem; color: var(--text-2); }
+html:not(.js) .scheme { display: none; }
+html:not(.js) .panel + .panel { margin-top: 20px; }
+/* Десктоп: описание этапа — справа от заголовка (мастер-промпт: «справа обновляется краткое описание»), схема на всю ширину ниже */
+@media (min-width: 1001px) {
+  .card[data-scheme] { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .85fr); column-gap: clamp(32px, 4vw, 64px); grid-template-areas: "h p" "s s" "n n"; align-items: center; }
+  .card[data-scheme] h2 { grid-area: h; font-size: clamp(2rem, 3.3vw, 3.25rem); }
+  .card[data-scheme] .panels { grid-area: p; margin: 0; padding: 0; border-top: 0; }
+  .card[data-scheme] .scheme { grid-area: s; }
+  .card[data-scheme] .note { grid-area: n; }
+}
+
+/* 04 География: три строгие линии сходятся к России */
+.geo .in { display: grid; gap: clamp(28px, 5vh, 56px); }
+.routes { position: relative; width: 100%; max-width: 46rem; aspect-ratio: 100 / 50; }
+.routes svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.routes line { stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.routes .r { position: absolute; left: 0; max-width: 24%; transform: translateY(-50%); font-weight: 600; line-height: 1.2; }
+.routes .dot { position: absolute; left: 88%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--accent); }
+.routes .to { position: absolute; left: 88%; top: 50%; transform: translate(-50%, 18px); font-weight: 700; }
+/* Линии «вытекают» слева направо к России за 1,0 с (мастер-промпт: переходы 650–1100 мс): точка и подпись появляются к концу */
+.motion .routes svg { clip-path: inset(0 100% 0 0); transition: clip-path 1s var(--ease); }
+.motion .routes.is-in svg { clip-path: inset(0); }
+.motion .routes .dot, .motion .routes .to { opacity: 0; transition: opacity .4s var(--ease) .6s; }
+.motion .routes.is-in .dot, .motion .routes.is-in .to { opacity: 1; }
+.cats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.cats li { padding: 10px 18px; border: 1px solid var(--line); border-radius: 999px; background: rgba(247, 248, 250, .7); font-weight: 500; }
+
+/* ===== Блоки 05–07 лежат на светлых блоках фона ===== */
+.approach .in > * + * { margin-top: clamp(24px, 4vh, 40px); }
+.formula { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15em .45em; font-size: clamp(1.75rem, 3.6vw, 3.25rem); font-weight: 600; letter-spacing: -.02em; }
+.formula i { font-style: normal; font-weight: 400; color: var(--accent); }
+.formula sub { font-size: .55em; line-height: 0; }
+.args { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); border-top: 1px solid var(--line); }
+.args li { padding: 24px 24px 24px 0; border-bottom: 1px solid var(--plane); font-size: 1.25rem; font-weight: 600; }
+
+.approach, .contact { position: relative; overflow: hidden; }
+.approach .in, .contact .in { position: relative; }
+/* Блок 05: p = 0 — панели разобщены, p = 1 — пять параллельных панелей под углом знака (54° от вертикали = 36° от горизонтали) */
+.align { position: absolute; right: var(--gutter); top: 50%; width: min(36vw, 460px); height: min(64%, 520px); translate: 0 -50%; pointer-events: none; }
+.align i {
+  position: absolute; top: 0; bottom: 0; left: calc(var(--k) * 22%); width: 34px;
+  background: linear-gradient(90deg, rgba(202, 216, 225, .55), rgba(202, 216, 225, .08)); border-left: 1px solid var(--line);
+  transform: translate(calc((1 - var(--p, 1)) * var(--x0)), calc((1 - var(--p, 1)) * var(--y0))) rotate(calc(54deg + (1 - var(--p, 1)) * var(--r0)));
+}
+/* Блок 07: h = 1 — диагональ знака (−36°), h = 0 — спокойная горизонталь */
+.horizon {
+  position: absolute; left: -15%; right: -15%; bottom: 14%; height: 150px; margin-bottom: -75px; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(202, 216, 225, .5) 50%, transparent);
+  transform: rotate(calc(var(--h, 0) * -36deg));
+}
+.horizon::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--line); }
+
+.portal {
+  position: relative; overflow: hidden; padding: clamp(28px, 5vw, 72px);
+  border: 1px solid var(--line); background: var(--surface);
+}
+.portal::before { /* рамка-портал: обе диагонали правой части панели, как знак X */
+  content: ""; position: absolute; top: 0; bottom: 0; left: 58%; right: 0; opacity: .8; pointer-events: none;
+  background:
+    linear-gradient(to top right, transparent calc(50% - .5px), var(--plane) calc(50% - .5px), var(--plane) calc(50% + .5px), transparent calc(50% + .5px)),
+    linear-gradient(to bottom right, transparent calc(50% - .5px), var(--plane) calc(50% - .5px), var(--plane) calc(50% + .5px), transparent calc(50% + .5px));
+}
+.portal__body { position: relative; max-width: 40rem; }
+.portal h2 { font-size: clamp(2rem, 3.6vw, 3.5rem); }
+.portal .lead { margin: 24px 0 32px; }
+/* Логотип SIMURG: файл заказчика (brand/simurg-logo-original.png), здесь его уменьшенная копия. Крупный.
+   Узкий экран — над заголовком; от 1000 px — справа от текста, диагонали рамки сходятся за ним */
+.portal__logo { position: relative; display: block; width: min(60vw, 240px); height: auto; margin-bottom: 24px; }
+@media (min-width: 1000px) {
+  .portal { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: clamp(32px, 5vw, 80px); }
+  .portal__body { grid-column: 1; grid-row: 1; }
+  .portal__logo { grid-column: 2; grid-row: 1; width: clamp(240px, 28vw, 420px); margin: 0; }
+}
+
+.contact .in { max-width: 60rem; margin-left: 0; }
+.contact .lead { margin-top: 24px; }
+
+.foot { padding: 48px var(--gutter) 56px; border-top: 1px solid var(--plane); }
+.foot .in { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 32px; }
+.foot img { display: block; height: 72px; width: auto; mix-blend-mode: multiply; }
+.foot .note { margin: 0; }
+
+/* Появление: 450–700 мс, сдвиг 16 px. Только при .motion: в спокойном режиме (reduced-motion, Save-Data) всё видно сразу */
+.motion .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
+.motion .reveal.is-in { opacity: 1; transform: none; }
+/* Если main.js не загрузился, блоки не остаются невидимыми: через 4 с показываются сами (main.js ставит .ready и отменяет это) */
+@keyframes reveal-fallback { to { opacity: 1; transform: none; } }
+.motion:not(.ready) .reveal { animation: reveal-fallback .01s 4s forwards; }
+
+/* ===== Motion (мастер-промпт, раздел 5) =====
+   Только при .motion (нет reduced-motion и Save-Data). Без него — статичные финальные кадры, весь интерфейс на месте. */
+.hero { position: relative; }
+.hero .in { position: relative; }
+.hero::before { content: ""; position: absolute; inset: 0; background: var(--milk); opacity: 0; pointer-events: none; }
+.motion .hero::before { animation: veil .8s ease-out both; } /* «проявляется свет»: 0,8 с; вместе с выдвижением X интро укладывается в 1,2 с */
+/* Только мышь: на телефоне X — статичная обрезанная скульптура (мастер-промпт, §6), 3D-слой там не создаётся */
+@media (hover: hover) and (pointer: fine) {
+  .motion .plate--a .world { animation: settle .8s var(--ease) .4s both; } /* X «выдвигается»: масштаб 1,035 → 1 около пересечения ног, ≈ 15 px у основания; конец на 1,2 с */
+  /* курсор: параллакс фона ≤ 10 px и наклон ≤ 1,2° (мастер-промпт: фон 4–12 px, орбита ≤ 3°);
+     камера при прокрутке: приближение до +4% (мастер-промпт: ≤ 10–18%); оба окна двигаются одинаково, поэтому стык не расходится */
+  .motion .world {
+    transform: perspective(2200px) translate3d(calc(var(--mx, 0) * -10px), calc(var(--my, 0) * -6px), 0)
+      rotateY(calc(var(--mx, 0) * 1.2deg)) rotateX(calc(var(--my, 0) * -.8deg)) scale(calc(1 + var(--cam, 0) * .04));
+    will-change: transform;
+  }
+}
+@keyframes veil { from { opacity: 1; } to { opacity: 0; } }
+@keyframes settle { from { scale: 1.035; } }
+
+/* Один короткий sticky-эпизод (1,3 экрана): карточка «Полный цикл» стоит, этапы переключаются прокруткой.
+   Только десктоп с мышью и окном не ниже 640 px; на телефоне, при reduced-motion и в низких окнах — обычная секция с ручным выбором. */
+@media (min-width: 1001px) and (min-height: 640px) and (hover: hover) and (pointer: fine) {
+  .motion .story { --pin: 130svh; }
+  /* align-content: start — в новых браузерах align-content работает и у блока и иначе центрировал бы .in в высокой секции */
+  .motion .story > .cycle { display: block; align-content: start; min-height: calc(100svh + var(--pin)); padding-block: 0; }
+  .motion .cycle .in { position: sticky; top: 0; min-height: 100svh; display: grid; align-content: center; padding-block: clamp(96px, 13vh, 150px) clamp(48px, 8vh, 96px); }
+}
+
+/* ===== Узкие экраны ===== */
+@media (max-width: 1000px) {
+  .top nav { display: none; }
+  .top { padding: 4px; }
+}
+@media (max-width: 900px) {
+  .scheme { height: auto; margin-top: 20px; }
+  .scheme__line { display: none; }
+  .scheme__nodes { position: static; }
+  .node, .node--up, .node--down {
+    position: static; width: 100%; transform: none; flex-direction: row-reverse; justify-content: flex-end; align-items: center;
+    gap: 14px; padding: 12px 0; border-top: 1px solid var(--plane); text-align: left;
+  }
+  .node .lbl, .node--down .lbl { min-height: 0; align-items: center; gap: 12px; font-size: 1.0625rem; }
+  .node .lbl::before { display: inline; font-size: var(--fs-cap); color: var(--text-2); min-width: 2ch; }
+  .routes .r { font-size: .9375rem; }
+}
+@media (max-width: 760px) {
+  .brand img { height: 56px; }
+  .top { top: 10px; right: 12px; }
+  .hero .in > *, .about .in > * { max-width: none; }
+  /* Герой выше экрана: X остаётся над текстом, заголовок уже на первом экране — на карточке внизу */
+  .story > .hero { min-height: 120svh; align-content: end; }
+  .hero .in { padding: 24px; border-radius: 20px; background: rgba(247, 248, 250, .94); }
+  .world { --px: 77%; transform-origin: 50% 9.9%; } /* центр X по центру экрана */
+  .align { display: none; }
+  /* Светлый текст на синей воде не набирал 4,5:1 у нижних строк (замер 2,8–3,1): подложка из графита палитры, расчётный контраст ≥5,8 */
+  .about .in { padding: 24px; border-radius: 20px; background: rgba(36, 56, 66, .62); }
+  .btn { min-height: 48px; padding: 0 22px; }
+  .portal::before { left: 40%; opacity: .5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.loaded { scroll-behavior: auto; }
+  .hero::before { display: none; }
+  *, *::before, *::after { transition-duration: .01ms !important; transition-delay: 0s !important; }
+}
